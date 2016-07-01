@@ -335,19 +335,23 @@ Class iATS_Service_Request {
     }
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
-      //  watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
+      //  watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
       if (1 < count($box)) {
-        // data is an array of rows, the first of which is the column headers
-        $headers = array_flip(str_getcsv($box[0]));
+        // data is an array of rows, the first of which is the column headers [which may need trimming!]
+        $headers = array_flip(array_map('trim',str_getcsv($box[0])));
+        // watchdog('civicrm_iatspayments_com', 'headers: <pre>!headers</pre>', array('!headers' => print_r($headers,TRUE)), WATCHDOG_NOTICE);
         for ($i = 1; $i < count($box); $i++) {
           if (empty($box[$i])) continue;
           $transaction = new stdClass;
           $data = str_getcsv($box[$i]);
+          // if (1 == $i) watchdog('civicrm_iatspayments_com', 'data: <pre>!data</pre>', array('!data' => print_r($data,TRUE)), WATCHDOG_NOTICE);
           // first get the data common to all methods
           $transaction->id = $data[$headers['Transaction ID']];
           $transaction->customer_code = $data[$headers['Customer Code']];
           // now the method specific headers
           switch($method) {
+            case 'cc_journal_csv':
+              $transation->data = $data; // full details in case it's a new one
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
@@ -360,7 +364,7 @@ Class iATS_Service_Request {
               break;
           }
           // and now the uk dd specific hack, only for the box journals
-          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method) {
+          if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method && 'cc_journal_csv' != $method) {
             $transaction->achref = $data[$headers['ACH Ref.']];
           }
           // note that date_format depends on the server (iats_domain)
