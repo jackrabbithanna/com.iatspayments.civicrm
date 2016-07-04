@@ -335,7 +335,7 @@ Class iATS_Service_Request {
     }
     if (is_object($response)) {
       $box = preg_split("/\r\n|\n|\r/", $this->file($response));
-      //  watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
+      // watchdog('civicrm_iatspayments_com', 'csv: <pre>!data</pre>', array('!data' => print_r($box,TRUE)), WATCHDOG_NOTICE);
       if (1 < count($box)) {
         // data is an array of rows, the first of which is the column headers [which may need trimming!]
         $headers = array_flip(array_map('trim',str_getcsv($box[0])));
@@ -357,6 +357,8 @@ Class iATS_Service_Request {
               $transaction->invoice = $data[$headers['Invoice']];
               $transaction->amount = $data[$headers['Total']];
               break;
+            case 'cc_payment_box_journal_csv':
+              $transaction->data = $data; // full details in case it's a new one
             default: // the box journals
               $transaction->amount = $data[$headers['Amount']];
               $datetime = $data[$headers['Date Time']];
@@ -448,6 +450,20 @@ Class iATS_Service_Request {
             'method' => 'GetCreditCardApprovedSpecificDateCSV',
             'message' => 'GetCreditCardApprovedSpecificDateCSV',
             'response' => 'GetCreditCardApprovedSpecificDateCSVResult',
+          ),
+          'cc_payment_box_journal_csv' => array(
+            'title' => 'Credit Card Payment Box Journal CSV',
+            'description'=> $desc. 'GetCreditCardApprovedDateRangeCSV',
+            'method' => 'GetCreditCardApprovedDateRangeCSV',
+            'message' => 'GetCreditCardApprovedDateRangeCSV',
+            'response' => 'GetCreditCardApprovedDateRangeCSVResult',
+          ),
+          'cc_payment_box_reject_csv' => array(
+            'title' => 'Credit Card Payment Box Reject CSV',
+            'description'=> $desc. 'GetCreditCardRejectDateRangeCSV',
+            'method' => 'GetCreditCardRejectDateRangeCSV',
+            'message' => 'GetCreditCardRejectDateRangeCSV',
+            'response' => 'GetCreditCardRejectDateRangeCSVResult',
           ),
           'acheft_journal_csv' => array(
             'title' => 'ACH-EFT Journal CSV',
