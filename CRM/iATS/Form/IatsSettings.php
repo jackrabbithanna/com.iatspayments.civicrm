@@ -35,6 +35,24 @@ class CRM_iATS_Form_IatsSettings extends CRM_Core_Form {
       ts('Disable extra edit fields for recurring contributions.')
     );
 
+    $this->add(
+      'checkbox', // field type
+      'import_quick', // field name
+      ts('Import one-time/new iATS transactions into CiviCRM (e.g. "mobile").')
+    );
+
+    $this->add(
+      'checkbox', // field type
+      'import_recur', // field name
+      ts('Import recurring iATS transactions into CiviCRM for known series (e.g. "iATS managed recurring").')
+    );
+
+    $this->add(
+      'checkbox', // field type
+      'import_series', // field name
+      ts('Allow creation of new recurring series from iATS imports. (e.g. "mobile recurring")')
+    );
+
     $days = array('-1' => 'disabled');
     for ($i = 1; $i <= 28; $i++) {
       $days["$i"] = "$i";
