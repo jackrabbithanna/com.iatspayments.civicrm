@@ -323,9 +323,11 @@ Class iATS_Service_Request {
   function getCSV($response, $method) {
     $transactions = array();
     $iats_domain = parse_url($this->_wsdl_url,PHP_URL_HOST);
+    $gmt_plus = 0;
     switch($iats_domain) {
       case 'www.iatspayments.com':
         $date_format = 'm/d/Y H:i:s';
+        $gmt_plus = 8 * 60 * 60; // this server is 8 hrs ahead of GMT
         break;
       case 'www.uk.iatspayments.com':
         $date_format = 'd/m/Y H:i:s';
@@ -348,17 +350,19 @@ Class iATS_Service_Request {
           // first get the data common to all methods
           $transaction->id = $data[$headers['Transaction ID']];
           $transaction->customer_code = $data[$headers['Customer Code']];
+          // save the raw data in 'data'
+          foreach($headers as $label => $column_i) {
+            $record[$label] = $data[$column_i];
+          }
+          $transaction->data = $record;
           // now the method specific headers
           switch($method) {
             case 'cc_journal_csv':
-              $transaction->data = $data; // full details in case it's a new one
             case 'acheft_journal_csv':
               $datetime = $data[$headers['Date']];
               $transaction->invoice = $data[$headers['Invoice']];
               $transaction->amount = $data[$headers['Total']];
               break;
-            case 'cc_payment_box_journal_csv':
-              $transaction->data = $data; // full details in case it's a new one
             default: // the box journals
               $transaction->amount = $data[$headers['Amount']];
               $datetime = $data[$headers['Date Time']];
@@ -369,9 +373,9 @@ Class iATS_Service_Request {
           if ('www.uk.iatspayments.com' == $iats_domain && 'acheft_journal_csv' != $method && 'cc_journal_csv' != $method) {
             $transaction->achref = $data[$headers['ACH Ref.']];
           }
-          // note that date_format depends on the server (iats_domain)
+          // note that $gmt_plus and date_format depend on the server (iats_domain)
           $rdp = date_parse_from_format($date_format,$datetime);
-          $transaction->receive_date = mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
+          $transaction->receive_date = $gmt_plus + mktime($rdp['hour'], $rdp['minute'], $rdp['second'], $rdp['month'], $rdp['day'], $rdp['year']);
           // and now save it
           $transactions[$transaction->id] = $transaction;
         }
