@@ -1160,7 +1160,14 @@ function _iats_contributionrecur_next($from_time, $allow_mdays) {
  */
 function _iats_process_contribution_payment(&$contribution, $options, $transaction_result = NULL) {
   // first create the pending contribution, and save its id
-  $contributionResult = civicrm_api3('contribution','create', $contribution);
+  try {
+    $contributionResult = civicrm_api3('contribution','create', $contribution);
+  }
+  catch (Exception $e) {
+    throw new API_Exception('Unexpected error processing contribution payment: ' . $e->getMessage() . "\n" .'<pre>'.print_r($contribution).'</pre>');
+    // ignore
+  }
+
   $contribution_id = CRM_Utils_Array::value('id', $contributionResult);
   // connect to a membership if requested
   if (!empty($options['membership_id'])) {
@@ -1200,6 +1207,10 @@ function _iats_process_contribution_payment(&$contribution, $options, $transacti
     // process the soap response into a readable result
     $transaction_result = $iats->result($response);
   }
+  else {
+    $contribution_status_id = 1; // is this correct?
+    // watchdog('iats_civicrm','transaction result Contribution <pre>@params</pre>',array('@params' => print_r($transaction_result, TRUE)));
+  }
   if (empty($transaction_result['status'])) { // a failure of some kind
     /* update the contribution record in civicrm  */
     /* with the failed transaction status or pending if I had a server issue */
@@ -1233,6 +1244,6 @@ function _iats_process_contribution_payment(&$contribution, $options, $transacti
   else { // success, but just update the transaction id, wait for completion
     $complete = array('id' => $contribution_id, 'trxn_id' => trim($transaction_result['remote_id']) . ':' . time());
     $contributionResult = civicrm_api3('contribution', 'create', $complete);
-    return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution_recur_id)).$transaction_result['auth_result'];
+    return ts('Successfully processed pending recurring contribution id %1: ', array(1 => $contribution['contribution_recur_id'])).$transaction_result['auth_result'];
   }
 }
